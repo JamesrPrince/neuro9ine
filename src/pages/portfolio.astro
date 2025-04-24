@@ -1,0 +1,427 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE_TITLE } from '../consts';
+import { projects } from '../data/projects';
+import type { Project } from '../data/projects.d';
+import { Image } from 'astro:assets';
+
+const skills = [
+  {
+    category: 'Frontend Development',
+    technologies: ['React', 'Next.js', 'Vue.js', 'TypeScript', 'Tailwind CSS']
+  },
+  {
+    category: 'Backend Development',
+    technologies: ['Node.js', 'Python', 'PostgreSQL', 'MongoDB', 'Redis']
+  },
+  {
+    category: 'Data & Analytics',
+    technologies: ['Python', 'Pandas', 'scikit-learn', 'D3.js', 'Apache Airflow']
+  },
+  {
+    category: 'Cloud & DevOps',
+    technologies: ['AWS', 'Docker', 'Kubernetes', 'CI/CD', 'Terraform']
+  }
+];
+
+const uniqueCategories = [...new Set(projects.map((project: Project) => project.category))];
+const uniqueTags = [...new Set(projects.flatMap((project: Project) => project.tags))];
+
+// Add sorting options
+const sortOptions = [
+  { value: 'newest', label: 'Newest First' },
+  { value: 'oldest', label: 'Oldest First' },
+  { value: 'az', label: 'A-Z' },
+  { value: 'za', label: 'Z-A' }
+];
+
+// Generate portfolio schema
+const portfolioSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'Portfolio',
+  description: 'A collection of our work in data analysis, web development, and process automation.',
+  url: new URL(Astro.url.pathname, Astro.site).toString(),
+  hasPart: projects.map((project: Project) => ({
+    '@type': 'CreativeWork',
+    name: project.title,
+    description: project.description,
+    image: new URL(project.image, Astro.site).toString(),
+    datePublished: project.dateCompleted.toISOString(),
+    category: project.category,
+    keywords: project.tags.join(',')
+  }))
+};
+
+// Generate meta description based on project categories
+const categories = [...new Set(projects.map((project: Project) => project.category))];
+const metaDescription = `Explore our portfolio of ${categories.join(', ')} projects. Professional solutions for businesses looking to innovate and grow.`;
+---
+
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <BaseHead 
+      title={`Portfolio - ${SITE_TITLE}`}
+      description={metaDescription}
+      type="website"
+      canonicalURL={new URL(Astro.url.pathname, Astro.site).toString()}
+    />
+    <script type="application/ld+json" set:html={JSON.stringify(portfolioSchema)} />
+    
+    <!-- Social media meta tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={`Portfolio - ${SITE_TITLE}`} />
+    <meta property="og:description" content={metaDescription} />
+    <meta property="og:image" content={new URL('/social-preview.jpg', Astro.site)} />
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    <!-- Additional SEO meta tags -->
+    <meta name="keywords" content={[...uniqueCategories, ...uniqueTags].join(', ')} />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+
+    <script>
+      // Make sure DOM is fully loaded
+      window.addEventListener('load', () => {
+        const filterButtons = document.querySelectorAll<HTMLButtonElement>('[data-filter]');
+        const projects = document.querySelectorAll<HTMLElement>('[data-project]');
+        const clearFilters = document.getElementById('clearFilters');
+        const searchInput = document.getElementById('projectSearch') as HTMLInputElement;
+        const sortSelect = document.getElementById('projectSort') as HTMLSelectElement;
+        const projectsContainer = document.querySelector<HTMLElement>('.project-grid');
+        let activeFilters = new Set<string>();
+
+        // Initialize all projects to be visible
+        projects.forEach((project: HTMLElement) => {
+          project.style.display = 'block';
+        });
+
+        // Filter button click handlers
+        filterButtons.forEach(button => {
+          button.addEventListener('click', () => {
+            const filter = button.getAttribute('data-filter') || '';
+            button.classList.toggle('bg-primary-600');
+            button.classList.toggle('text-white');
+            
+            if (activeFilters.has(filter)) {
+              activeFilters.delete(filter);
+            } else {
+              activeFilters.add(filter);
+            }
+
+            filterAndSortProjects();
+          });
+        });
+
+        // Clear filters handler
+        clearFilters?.addEventListener('click', () => {
+          activeFilters.clear();
+          filterButtons.forEach(button => {
+            button.classList.remove('bg-primary-600', 'text-white');
+          });
+          projects.forEach((project: HTMLElement) => {
+            project.style.display = 'block';
+          });
+        });
+
+        // Search input handler
+        searchInput?.addEventListener('input', filterAndSortProjects);
+        
+        // Sort select handler
+        sortSelect?.addEventListener('change', filterAndSortProjects);
+
+        function filterAndSortProjects() {
+          const searchTerm = searchInput?.value.toLowerCase() || '';
+          
+          // First filter projects
+          projects.forEach((project: HTMLElement) => {
+            const title = project.getAttribute('data-title')?.toLowerCase() || '';
+            const description = project.getAttribute('data-description')?.toLowerCase() || '';
+            const category = project.getAttribute('data-category')?.toLowerCase() || '';
+            const tags = JSON.parse(project.getAttribute('data-tags') || '[]') as string[];
+            
+            const matchesSearch = !searchTerm || 
+              title.includes(searchTerm) || 
+              description.includes(searchTerm) ||
+              category.includes(searchTerm) ||
+              tags.some((tag: string) => tag.toLowerCase().includes(searchTerm));
+            
+            const matchesFilters = activeFilters.size === 0 || 
+              activeFilters.has(category) ||
+              tags.some((tag: string) => activeFilters.has(tag));
+            
+            project.style.display = (matchesSearch && matchesFilters) ? 'block' : 'none';
+          });
+
+          // Then sort visible projects
+          if (projectsContainer && sortSelect) {
+            const projectsList = Array.from(projects).filter((p: HTMLElement) => p.style.display !== 'none');
+            const sortValue = sortSelect.value;
+
+            projectsList.sort((a, b) => {
+              const titleA = a.getAttribute('data-title')?.toLowerCase() || '';
+              const titleB = b.getAttribute('data-title')?.toLowerCase() || '';
+              const dateA = new Date(a.getAttribute('data-date') || '').getTime();
+              const dateB = new Date(b.getAttribute('data-date') || '').getTime();
+
+              switch (sortValue) {
+                case 'newest':
+                  return dateB - dateA;
+                case 'oldest':
+                  return dateA - dateB;
+                case 'az':
+                  return titleA.localeCompare(titleB);
+                case 'za':
+                  return titleB.localeCompare(titleA);
+                default:
+                  return 0;
+              }
+            });
+
+            // Re-append sorted projects
+            projectsList.forEach(project => {
+              projectsContainer.appendChild(project);
+            });
+          }
+        }
+
+        // Add fade-in animations
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('show');
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.1 }
+        );
+
+        document.querySelectorAll('.fade-in').forEach((el) => {
+          observer.observe(el);
+        });
+
+        // Initial sort
+        filterAndSortProjects();
+      });
+    </script>
+    <style>
+      /* Animation classes */
+      .fade-in {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+      }
+
+      .fade-in.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* Staggered animation delay for grid items */
+      .project-grid article {
+        transition-delay: calc(var(--animation-order) * 0.1s);
+      }
+
+      @media (max-width: 640px) {
+        .filter-scroll {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        
+        .filter-scroll::-webkit-scrollbar {
+          display: none;
+        }
+        
+        .filter-scroll > div {
+          padding-bottom: 0.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-white dark:bg-gray-900">
+    <Header />
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <!-- Hero Section -->
+      <div class="text-center mb-16">
+        <h1 class="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">Portfolio</h1>
+        <p class="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+          A collection of our work in data analysis, web development, and process automation. Each project demonstrates our commitment to creating efficient, scalable, and user-friendly solutions.
+        </p>
+      </div>
+
+      <!-- Skills Section -->
+      <section class="mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">Our Expertise</h2>
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {skills.map((skill) => (
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+              <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">{skill.category}</h3>
+              <div class="flex flex-wrap gap-2">
+                {skill.technologies.map((tech) => (
+                  <span class="px-3 py-1 text-sm bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 rounded-full">
+                    {tech}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- Search and Sort Section -->
+      <div class="mb-8">
+        <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <div class="w-full sm:w-96">
+            <label for="projectSearch" class="sr-only">Search projects</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="search"
+                id="projectSearch"
+                class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                placeholder="Search projects..."
+              />
+            </div>
+          </div>
+          <div class="w-full sm:w-auto">
+            <label for="projectSort" class="sr-only">Sort projects</label>
+            <select
+              id="projectSort"
+              class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+            >
+              {sortOptions.map(option => (
+                <option value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Section -->
+      <div class="mb-8 filter-scroll">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Filter Projects</h2>
+          <button
+            id="clearFilters"
+            class="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+          >
+            Clear filters
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          {uniqueCategories.map((category) => (
+            <button
+              data-filter={category}
+              class="px-4 py-2 text-sm font-medium rounded-full border-2 border-primary-600 text-primary-600 hover:bg-primary-600 hover:text-white transition-colors"
+            >
+              {category}
+            </button>
+          ))}
+          {uniqueTags.map((tag) => (
+            <button
+              data-filter={tag}
+              class="px-4 py-2 text-sm font-medium rounded-full border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <!-- Project Grid -->
+      <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3 project-grid">
+        {projects.map((project: Project, index: number) => (
+          <article
+            data-project
+            data-title={project.title}
+            data-description={project.description}
+            data-category={project.category}
+            data-tags={JSON.stringify(project.tags)}
+            data-date={project.dateCompleted?.toISOString()}
+            style={`--animation-order: ${index}`}
+            class="group bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:-translate-y-2 fade-in"
+          >
+            <div class="relative">
+              <Image
+                src={project.image}
+                alt={project.title}
+                width={800}
+                height={450}
+                class="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                loading={index <= 5 ? "eager" : "lazy"}
+                format="webp"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div class="absolute bottom-4 left-4 right-4 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+                <a
+                  href={project.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                >
+                  View Project
+                </a>
+              </div>
+            </div>
+            <div class="p-6">
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
+                  {project.category}
+                </span>
+                {project.tags.map((tag: string) => (
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                {project.title}
+              </h3>
+              <p class="text-gray-600 dark:text-gray-400 mb-4">
+                {project.description}
+              </p>
+              <ul class="space-y-2">
+                {project.details.map((detail: string) => (
+                  <li class="flex items-start">
+                    <svg class="h-5 w-5 text-primary-600 dark:text-primary-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">{detail}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <!-- Contact CTA -->
+      <div class="mt-24 text-center">
+        <h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Interested in working together?</h2>
+        <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+          We're always open to discussing new projects and opportunities.
+        </p>
+        <div class="mt-8">
+          <a
+            href="mailto:contact@neuro9ine.com"
+            class="inline-flex items-center justify-center px-6 py-3 text-base font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          >
+            Get in Touch
+          </a>
+        </div>
+      </div>
+    </main>
+    <Footer />
+  </body>
+</html>

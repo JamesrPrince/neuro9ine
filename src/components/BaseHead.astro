@@ -1,0 +1,134 @@
+---
+// Import the global.css file here so that it is included on
+// all pages through the use of the <BaseHead /> component.
+import '../styles/global.css';
+
+interface Props {
+	title: string;
+	description: string;
+	image?: string;
+	canonicalURL?: string;
+	type?: 'website' | 'article';
+	publishDate?: Date;
+	author?: string;
+}
+
+const {
+	title,
+	description,
+	image = '/blog-placeholder-1.jpg',
+	canonicalURL = new URL(Astro.url.pathname, Astro.site),
+	type = 'website',
+	publishDate,
+	author,
+} = Astro.props;
+
+// Format date for schema.org JSON-LD
+const formattedPublishDate = publishDate?.toISOString();
+
+// Generate the JSON-LD schema
+const schema = {
+	'@context': 'https://schema.org',
+	'@type': type === 'article' ? 'Article' : 'WebPage',
+	url: canonicalURL,
+	name: title,
+	description: description,
+	...(type === 'article' && {
+		author: {
+			'@type': 'Person',
+			name: author,
+		},
+		datePublished: formattedPublishDate,
+		image: new URL(image, Astro.site),
+	}),
+};
+---
+
+<!-- Global Metadata -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<meta name="generator" content={Astro.generator} />
+
+<!-- Primary Meta Tags -->
+<title>{title}</title>
+<meta name="title" content={title} />
+<meta name="description" content={description} />
+<link rel="canonical" href={canonicalURL} />
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content={type} />
+<meta property="og:url" content={canonicalURL} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={new URL(image, Astro.site)} />
+
+<!-- Twitter -->
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:url" content={canonicalURL} />
+<meta property="twitter:title" content={title} />
+<meta property="twitter:description" content={description} />
+<meta property="twitter:image" content={new URL(image, Astro.site)} />
+
+<!-- Schema.org JSON-LD -->
+<script type="application/ld+json" set:html={JSON.stringify(schema)} />
+
+<!-- Responsive text sizing -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+<!-- Preload fonts -->
+<link rel="preload" href="/fonts/atkinson-regular.woff" as="font" type="font/woff" crossorigin />
+<link rel="preload" href="/fonts/atkinson-bold.woff" as="font" type="font/woff" crossorigin />
+
+<!-- Theme color -->
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+
+<!-- Performance optimizations -->
+<link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+<link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+<!-- Security headers -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff" />
+<meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
+<meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+
+<!-- KaTeX -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+
+<!-- Prism.js CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
+
+<!-- Font preloads -->
+<link rel="preload" href="/fonts/atkinson-regular.woff" as="font" type="font/woff" crossorigin />
+<link rel="preload" href="/fonts/atkinson-bold.woff" as="font" type="font/woff" crossorigin />
+
+<!-- Canonical URL -->
+<link rel="canonical" href={canonicalURL} />
+
+<!-- Initialize Prism.js -->
+<script is:inline>
+window.addEventListener('load', () => {
+  // Import Prism only if we have code blocks
+  if (document.querySelector('pre[class*="language-"]')) {
+    import('prismjs').then((Prism) => {
+      // Languages we might use in our blog posts
+      import('prismjs/components/prism-python');
+      import('prismjs/components/prism-typescript');
+      import('prismjs/components/prism-javascript');
+      import('prismjs/components/prism-jsx');
+      import('prismjs/components/prism-tsx');
+      import('prismjs/components/prism-json');
+      import('prismjs/components/prism-css');
+      import('prismjs/components/prism-scss');
+      import('prismjs/components/prism-bash');
+      import('prismjs/components/prism-markdown');
+      
+      // Highlight all code blocks
+      Prism.highlightAll();
+    });
+  }
+});
+</script>

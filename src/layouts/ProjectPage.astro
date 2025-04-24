@@ -1,0 +1,156 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import FormattedDate from '../components/FormattedDate.astro';
+import { Image } from 'astro:assets';
+
+type Props = {
+	title: string;
+	description: string;
+	image?: string;
+	category: string;
+	tags: string[];
+	details: string[];
+	link: string;
+	dateCompleted?: Date;
+	client?: string;
+	testimonial?: {
+		text: string;
+		author: string;
+		role: string;
+		company: string;
+	};
+	metrics?: {
+		label: string;
+		value: string;
+	}[];
+};
+
+const { 
+	title, 
+	description, 
+	image, 
+	category, 
+	tags, 
+	details,
+	link,
+	dateCompleted,
+	client,
+	testimonial,
+	metrics
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} />
+	</head>
+
+	<body class="bg-white dark:bg-gray-900">
+		<Header />
+		<main class="pt-8 pb-16 lg:pt-16 lg:pb-24">
+			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+				<article class="max-w-4xl mx-auto">
+					{image && (
+						<div class="aspect-[16/9] w-full mb-8 overflow-hidden rounded-2xl">
+							<Image 
+								src={image} 
+								alt={title}
+								width={1200}
+								height={675}
+								class="w-full h-full object-cover"
+								loading="eager"
+								format="webp"
+							/>
+						</div>
+					)}
+
+					<div class="flex flex-wrap gap-2 mb-4">
+						<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
+							{category}
+						</span>
+						{tags.map((tag) => (
+							<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+								{tag}
+							</span>
+						))}
+					</div>
+
+					<header class="mb-8">
+						<h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+							{title}
+						</h1>
+						<p class="text-xl text-gray-600 dark:text-gray-400">
+							{description}
+						</p>
+					</header>
+
+					{metrics && (
+						<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+							{metrics.map((metric) => (
+								<div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+									<dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{metric.label}</dt>
+									<dd class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white">{metric.value}</dd>
+								</div>
+							))}
+						</div>
+					)}
+
+					<div class="prose prose-lg dark:prose-invert max-w-none mb-8">
+						<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Key Features</h2>
+						<ul class="space-y-4">
+							{details.map((detail) => (
+								<li class="flex items-start">
+									<svg class="h-6 w-6 text-primary-600 dark:text-primary-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+									</svg>
+									<span class="text-gray-600 dark:text-gray-400">{detail}</span>
+								</li>
+							))}
+						</ul>
+
+						{testimonial && (
+							<div class="my-12">
+								<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Client Testimonial</h2>
+								<blockquote class="relative">
+									<svg class="absolute top-0 left-0 transform -translate-x-6 -translate-y-8 h-16 w-16 text-gray-100 dark:text-gray-800" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+										<path d="M7.39762 10.3C7.39762 11.0733 7.14888 11.7 6.6514 12.18C6.15392 12.6333 5.52552 12.86 4.76621 12.86C3.84979 12.86 3.09047 12.5533 2.48825 11.94C1.91222 11.3266 1.62421 10.4467 1.62421 9.29999C1.62421 8.07332 1.96459 6.87332 2.64535 5.69999C3.35231 4.49999 4.33418 3.55332 5.59098 2.85999L6.4943 4.25999C5.81354 4.73999 5.26369 5.27332 4.84476 5.85999C4.45201 6.44666 4.19017 7.12666 4.05926 7.89999C4.29491 7.79332 4.56983 7.73999 4.88403 7.73999C5.61716 7.73999 6.21938 7.97999 6.69067 8.45999C7.16197 8.93999 7.39762 9.55333 7.39762 10.3ZM14.6242 10.3C14.6242 11.0733 14.3755 11.7 13.878 12.18C13.3805 12.6333 12.7521 12.86 11.9928 12.86C11.0764 12.86 10.3171 12.5533 9.71484 11.94C9.13881 11.3266 8.85079 10.4467 8.85079 9.29999C8.85079 8.07332 9.19117 6.87332 9.87194 5.69999C10.5789 4.49999 11.5608 3.55332 12.8176 2.85999L13.7209 4.25999C13.0401 4.73999 12.4903 5.27332 12.0713 5.85999C11.6786 6.44666 11.4168 7.12666 11.2858 7.89999C11.5215 7.79332 11.7964 7.73999 12.1106 7.73999C12.8437 7.73999 13.446 7.97999 13.9173 8.45999C14.3886 8.93999 14.6242 9.55333 14.6242 10.3Z" fill="currentColor"/>
+									</svg>
+									<div class="relative z-10">
+										<p class="text-xl text-gray-600 dark:text-gray-400 italic mb-4">{testimonial.text}</p>
+										<footer>
+											<div class="flex items-center">
+												<div>
+													<div class="text-base font-semibold text-gray-900 dark:text-white">{testimonial.author}</div>
+													<div class="text-sm text-gray-600 dark:text-gray-400">{testimonial.role}, {testimonial.company}</div>
+												</div>
+											</div>
+										</footer>
+									</div>
+								</blockquote>
+							</div>
+						)}
+					</div>
+
+					<div class="flex justify-center">
+						<a
+							href={link}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+						>
+							View Live Project
+							<svg class="ml-2 -mr-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+								<path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+							</svg>
+						</a>
+					</div>
+				</article>
+			</div>
+		</main>
+		<Footer />
+	</body>
+</html>

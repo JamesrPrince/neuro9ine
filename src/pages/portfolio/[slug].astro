@@ -1,0 +1,94 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import ProjectPage from '../../layouts/ProjectPage.astro';
+import { projects } from '../../data/projects';
+import type { Project } from '../../data/projects';
+import type { GetStaticPaths } from 'astro';
+
+export const getStaticPaths: GetStaticPaths = () => {
+  return projects.map((project) => {
+    const slug = project.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+    // Generate JSON-LD schema for each project
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': 'Project',
+      name: project.title,
+      description: project.description,
+      image: new URL(project.image, Astro.site).toString(),
+      datePublished: project.dateCompleted.toISOString(),
+      ...(project.client && {
+        funder: {
+          '@type': 'Organization',
+          name: project.client
+        }
+      }),
+      ...(project.testimonial && {
+        review: {
+          '@type': 'Review',
+          reviewBody: project.testimonial.text,
+          author: {
+            '@type': 'Person',
+            name: project.testimonial.author,
+            jobTitle: project.testimonial.role,
+            worksFor: {
+              '@type': 'Organization',
+              name: project.testimonial.company
+            }
+          }
+        }
+      })
+    };
+
+    return {
+      params: { slug },
+      props: { 
+        project,
+        schema
+      },
+    };
+  });
+};
+
+interface Props {
+  project: Project;
+  schema: Record<string, any>;
+}
+
+const { project, schema } = Astro.props as Props;
+
+// Generate meta description
+const metaDescription = `${project.description} Built with ${project.tags.join(', ')}.`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead 
+      title={`${project.title} - Portfolio Project`}
+      description={metaDescription}
+      image={project.image}
+      type="article"
+      publishDate={project.dateCompleted}
+    />
+    <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+  </head>
+  <body>
+    <ProjectPage 
+      title={project.title}
+      description={project.description}
+      image={project.image}
+      category={project.category}
+      tags={project.tags}
+      details={project.details}
+      link={project.link}
+      dateCompleted={project.dateCompleted}
+      client={project.client}
+      testimonial={project.testimonial}
+      metrics={project.metrics}
+    />
+  </body>
+</html>
